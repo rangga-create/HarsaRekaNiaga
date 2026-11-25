@@ -1,0 +1,398 @@
+"use client";
+
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
+import {
+  Supplier,
+  Buyer,
+  BuyerInteraction,
+  FollowUp,
+  Deal,
+  CalculatorScenario,
+  Commission,
+  CommissionDistribution,
+  ActivityLog,
+  UserProfile,
+  Product,
+} from "@/lib/data";
+import {
+  loadStoredData,
+  saveData,
+  resetStoredData,
+  StoredData,
+} from "@/lib/storage";
+
+interface DemoStoreValue {
+  data: StoredData;
+  refresh: () => StoredData;
+  reset: () => StoredData;
+  markDemo: (record: { demo: boolean }) => void;
+}
+
+const DemoStore = createContext<DemoStoreValue | null>(null);
+
+export function DemoStoreProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [data, setData] = useState<StoredData>(() => loadStoredData());
+
+  const refresh = useCallback((): StoredData => {
+    const next = loadStoredData();
+    setData(next);
+    return next;
+  }, []);
+
+  const reset = useCallback((): StoredData => {
+    const next = resetStoredData();
+    setData(next);
+    return next;
+  }, []);
+
+  useEffect(() => {
+    saveData(data);
+  }, [data]);
+
+  return (
+    <DemoStore.Provider
+      value={{
+        data,
+        refresh,
+        reset,
+        markDemo: (record) => {
+          record.demo = true;
+        },
+      }}
+    >
+      {children}
+    </DemoStore.Provider>
+  );
+}
+
+export function useDemoStore() {
+  const ctx = useContext(DemoStore);
+  if (!ctx) {
+    throw new Error("useDemoStore must be used within DemoStoreProvider");
+  }
+  return ctx;
+}
+
+type DataUpdater<T> = (current: StoredData) => StoredData;
+
+function withData<T>(
+  setData: React.Dispatch<React.SetStateAction<StoredData>>,
+  mutator: (current: StoredData) => StoredData
+) {
+  setData(mutator);
+}
+
+export function useSuppliers() {
+  const { data, refresh } = useDemoStore();
+  const setData = useDemoStore().data;
+  const [, forceUpdate] = useState(0);
+  const wrappedSetData = useCallback(
+    (mutator: (current: StoredData) => StoredData) => {
+      const current = useDemoStore().data;
+      const next = mutator(current);
+      saveData(next);
+      // force re-render by updating transient counter
+      forceUpdate((n) => n + 1);
+    },
+    [forceUpdate]
+  );
+
+  return {
+    list: data.suppliers,
+    add: (s: Supplier) => {
+      saveData({ ...data, suppliers: [...data.suppliers, s] });
+      forceUpdate((n) => n + 1);
+    },
+    update: (id: string, changes: Partial<Supplier>) => {
+      saveData({
+        ...data,
+        suppliers: data.suppliers.map((s) =>
+          s.id === id ? { ...s, ...changes } : s
+        ),
+      });
+      forceUpdate((n) => n + 1);
+    },
+    remove: (id: string) => {
+      saveData({
+        ...data,
+        suppliers: data.suppliers.filter((s) => s.id !== id),
+      });
+      forceUpdate((n) => n + 1);
+    },
+    refresh,
+  };
+}
+
+export function useBuyers() {
+  const { data, refresh } = useDemoStore();
+  const [, forceUpdate] = useState(0);
+  return {
+    list: data.buyers,
+    add: (b: Buyer) => {
+      saveData({ ...data, buyers: [...data.buyers, b] });
+      forceUpdate((n) => n + 1);
+    },
+    update: (id: string, changes: Partial<Buyer>) => {
+      saveData({
+        ...data,
+        buyers: data.buyers.map((b) =>
+          b.id === id ? { ...b, ...changes } : b
+        ),
+      });
+      forceUpdate((n) => n + 1);
+    },
+    remove: (id: string) => {
+      saveData({
+        ...data,
+        buyers: data.buyers.filter((b) => b.id !== id),
+      });
+      forceUpdate((n) => n + 1);
+    },
+    refresh,
+  };
+}
+
+export function useProducts() {
+  const { data, refresh } = useDemoStore();
+  const [, forceUpdate] = useState(0);
+  return {
+    list: data.products,
+    add: (p: Product) => {
+      saveData({ ...data, products: [...data.products, p] });
+      forceUpdate((n) => n + 1);
+    },
+    update: (id: string, changes: Partial<Product>) => {
+      saveData({
+        ...data,
+        products: data.products.map((p) =>
+          p.id === id ? { ...p, ...changes } : p
+        ),
+      });
+      forceUpdate((n) => n + 1);
+    },
+    remove: (id: string) => {
+      saveData({
+        ...data,
+        products: data.products.filter((p) => p.id !== id),
+      });
+      forceUpdate((n) => n + 1);
+    },
+    refresh,
+  };
+}
+
+export function useDeals() {
+  const { data, refresh } = useDemoStore();
+  const [, forceUpdate] = useState(0);
+  return {
+    list: data.deals,
+    add: (d: Deal) => {
+      saveData({ ...data, deals: [...data.deals, d] });
+      forceUpdate((n) => n + 1);
+    },
+    update: (id: string, changes: Partial<Deal>) => {
+      saveData({
+        ...data,
+        deals: data.deals.map((d) =>
+          d.id === id ? { ...d, ...changes } : d
+        ),
+      });
+      forceUpdate((n) => n + 1);
+    },
+    remove: (id: string) => {
+      saveData({
+        ...data,
+        deals: data.deals.filter((d) => d.id !== id),
+      });
+      forceUpdate((n) => n + 1);
+    },
+    refresh,
+  };
+}
+
+export function useBuyerInteractions() {
+  const { data, refresh } = useDemoStore();
+  const [, forceUpdate] = useState(0);
+  return {
+    list: data.buyerInteractions,
+    add: (i: BuyerInteraction) => {
+      saveData({
+        ...data,
+        buyerInteractions: [...data.buyerInteractions, i],
+      });
+      forceUpdate((n) => n + 1);
+    },
+    update: (id: string, changes: Partial<BuyerInteraction>) => {
+      saveData({
+        ...data,
+        buyerInteractions: data.buyerInteractions.map((i) =>
+          i.id === id ? { ...i, ...changes } : i
+        ),
+      });
+      forceUpdate((n) => n + 1);
+    },
+    remove: (id: string) => {
+      saveData({
+        ...data,
+        buyerInteractions: data.buyerInteractions.filter(
+          (i) => i.id !== id
+        ),
+      });
+      forceUpdate((n) => n + 1);
+    },
+    refresh,
+  };
+}
+
+export function useFollowUps() {
+  const { data, refresh } = useDemoStore();
+  const [, forceUpdate] = useState(0);
+  return {
+    list: data.followUps,
+    add: (f: FollowUp) => {
+      saveData({
+        ...data,
+        followUps: [...data.followUps, f],
+      });
+      forceUpdate((n) => n + 1);
+    },
+    update: (id: string, changes: Partial<FollowUp>) => {
+      saveData({
+        ...data,
+        followUps: data.followUps.map((f) =>
+          f.id === id ? { ...f, ...changes } : f
+        ),
+      });
+      forceUpdate((n) => n + 1);
+    },
+    remove: (id: string) => {
+      saveData({
+        ...data,
+        followUps: data.followUps.filter((f) => f.id !== id),
+      });
+      forceUpdate((n) => n + 1);
+    },
+    refresh,
+  };
+}
+
+export function useCalculatorScenarios() {
+  const { data, refresh } = useDemoStore();
+  const [, forceUpdate] = useState(0);
+  return {
+    list: data.calculatorScenarios,
+    add: (s: CalculatorScenario) => {
+      saveData({
+        ...data,
+        calculatorScenarios: [...data.calculatorScenarios, s],
+      });
+      forceUpdate((n) => n + 1);
+    },
+    remove: (id: string) => {
+      saveData({
+        ...data,
+        calculatorScenarios: data.calculatorScenarios.filter(
+          (s) => s.id !== id
+        ),
+      });
+      forceUpdate((n) => n + 1);
+    },
+    refresh,
+  };
+}
+
+export function useCommissions() {
+  const { data, refresh } = useDemoStore();
+  const [, forceUpdate] = useState(0);
+  return {
+    list: data.commissions,
+    add: (c: Commission) => {
+      saveData({
+        ...data,
+        commissions: [...data.commissions, c],
+      });
+      forceUpdate((n) => n + 1);
+    },
+    update: (id: string, changes: Partial<Commission>) => {
+      saveData({
+        ...data,
+        commissions: data.commissions.map((c) =>
+          c.id === id ? { ...c, ...changes } : c
+        ),
+      });
+      forceUpdate((n) => n + 1);
+    },
+    remove: (id: string) => {
+      saveData({
+        ...data,
+        commissions: data.commissions.filter((c) => c.id !== id),
+      });
+      forceUpdate((n) => n + 1);
+    },
+    refresh,
+  };
+}
+
+export function useCommissionDistribution() {
+  const { data, refresh } = useDemoStore();
+  const [, forceUpdate] = useState(0);
+  return {
+    value: data.commissionDistribution,
+    update: (changes: Partial<CommissionDistribution>) => {
+      saveData({
+        ...data,
+        commissionDistribution: {
+          ...data.commissionDistribution,
+          ...changes,
+          updatedAt: new Date().toISOString(),
+        },
+      });
+      forceUpdate((n) => n + 1);
+    },
+    refresh,
+  };
+}
+
+export function useActivityLogs() {
+  const { data, refresh } = useDemoStore();
+  const [, forceUpdate] = useState(0);
+  return {
+    list: data.activityLogs,
+    add: (a: ActivityLog) => {
+      saveData({
+        ...data,
+        activityLogs: [...data.activityLogs, a],
+      });
+      forceUpdate((n) => n + 1);
+    },
+    refresh,
+  };
+}
+
+export function useUsers() {
+  const { data, refresh } = useDemoStore();
+  const [, forceUpdate] = useState(0);
+  return {
+    list: data.users,
+    update: (id: string, changes: Partial<UserProfile>) => {
+      saveData({
+        ...data,
+        users: data.users.map((u) =>
+          u.id === id ? { ...u, ...changes } : u
+        ),
+      });
+      forceUpdate((n) => n + 1);
+    },
+    refresh,
+  };
+}

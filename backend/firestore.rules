@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    match /users/{userId} {
+      allow read, write: if signedIn();
+    }
+
+    match /suppliers/{docId} {
+      allow read, write: if signedIn();
+    }
+
+    match /buyers/{docId} {
+      allow read, write: if signedIn();
+    }
+
+    match /products/{docId} {
+      allow read, write: if signedIn();
+    }
+
+    match /deals/{docId} {
+      allow read, write: if signedIn();
+    }
+
+    match /commissions/{docId} {
+      allow read, write: if signedIn();
+    }
+
+    match /calculatorScenarios/{docId} {
+      allow read, write: if signedIn();
+    }
+
+    match /buyerInteractions/{docId} {
+      allow read, write: if signedIn();
+    }
+
+    match /followUps/{docId} {
+      allow read, write: if signedIn();
+    }
+
+    match /activityLogs/{docId} {
+      allow read, create: if signedIn();
+      allow update, delete: if false;
+    }
+
+    match /commissionDistribution/{docId} {
+      allow read, write: if signedIn();
+    }
+
+    match /buyerRequests/{docId} {
+      allow read, write: if signedIn();
+    }
+
+    match /requestFindings/{docId} {
+      allow read, write: if signedIn();
+    }
+  }
+}

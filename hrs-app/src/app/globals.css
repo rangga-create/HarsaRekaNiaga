@@ -1,0 +1,135 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-display);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 6px;
+  --radius-2xl: 8px;
+  --radius-3xl: 10px;
+  --radius-4xl: 12px;
+
+  --color-brand-forest: #111111;
+  --color-brand-forest-2: #2b2b2b;
+  --color-brand-gold: #ffcc00;
+  --color-brand-surface: #fffdf5;
+  --color-brand-bg: #f5f0e1;
+  --color-brand-text: #111111;
+  --color-brand-foreground: #111111;
+  --color-brand-accent: #ffe66d;
+  --color-brand-muted: #3f3f3f;
+  --color-brand-border: #111111;
+  --color-brand-success: #2d9d5c;
+  --color-brand-warning: #ff9900;
+  --color-brand-danger: #e53935;
+  --color-manga-ink: #111111;
+  --color-manga-paper: #fffdf5;
+  --color-manga-tone: #e8e0cc;
+  --color-manga-red: #e53935;
+  --color-manga-yellow: #ffcc00;
+  --color-manga-cyan: #00a6d6;
+}
+
+:root {
+  --background: #f5f0e1;
+  --foreground: #111111;
+  --card: #fffdf5;
+  --card-foreground: #111111;
+  --popover: #fffdf5;
+  --popover-foreground: #111111;
+  --primary: #111111;
+  --primary-foreground: #ffffff;
+  --secondary: #ffcc00;
+  --secondary-foreground: #111111;
+  --muted: #efe7d3;
+  --muted-foreground: #333333;
+  --accent: #ffe66d;
+  --accent-foreground: #111111;
+  --destructive: #e53935;
+  --border: #111111;
+  --input: #111111;
+  --ring: #111111;
+  --chart-1: #111111;
+  --chart-2: #e53935;
+  --chart-3: #ffcc00;
+  --chart-4: #00a6d6;
+  --chart-5: #2d9d5c;
+  --radius: 4px;
+  --sidebar: #fffdf5;
+  --sidebar-foreground: #111111;
+  --sidebar-primary: #111111;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ffe66d;
+  --sidebar-accent-foreground: #111111;
+  --sidebar-border: #111111;
+  --sidebar-ring: #111111;
+  --manga-shadow: 4px 4px 0 #111111;
+  --manga-shadow-sm: 2px 2px 0 #111111;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(17,17,17,0.08) 1px, transparent 0),
+    linear-gradient(0deg, rgba(255,253,245,0.9), rgba(255,253,245,0.9));
+  background-size: 12px 12px, auto;
+}
+
+h1, h2, h3, h4, .font-heading, [data-slot="card-title"], [data-slot="dialog-title"] {
+  font-family: var(--font-display), Impact, sans-serif !important;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.manga-panel {
+  background: var(--card);
+  border: 3px solid #111 !important;
+  box-shadow: var(--manga-shadow);
+}
+
+.manga-screentone {
+  background-image: radial-gradient(#111 1px, transparent 1px);
+  background-size: 6px 6px;
+}
+
+.sidebar-scroll::-webkit-scrollbar { width: 8px; }
+.sidebar-scroll::-webkit-scrollbar-thumb { background: #111; border: 2px solid #fffdf5; }

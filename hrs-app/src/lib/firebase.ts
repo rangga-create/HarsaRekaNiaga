@@ -11,18 +11,30 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+const isFirebaseConfigured = Boolean(
+  firebaseConfig.apiKey && firebaseConfig.authDomain && firebaseConfig.projectId
+);
+
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 
 if (typeof window !== "undefined") {
-  if (!getApps().length) {
-    app = initializeApp(firebaseConfig);
+  if (!isFirebaseConfigured) {
+    console.error(
+      "[firebase] Konfigurasi belum lengkap. Set NEXT_PUBLIC_FIREBASE_API_KEY, " +
+        "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN, dan NEXT_PUBLIC_FIREBASE_PROJECT_ID " +
+        "di environment lalu redeploy."
+    );
   } else {
-    app = getApp();
+    try {
+      app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      db = getFirestore(app);
+    } catch (error) {
+      console.error("[firebase] Gagal inisialisasi Firebase:", error);
+    }
   }
-  auth = getAuth(app);
-  db = getFirestore(app);
 }
 
-export { app, auth, db };
+export { app, auth, db, isFirebaseConfigured };

@@ -54,6 +54,61 @@ export function isUpcoming(date: string | null | undefined): boolean {
   }
 }
 
+export function daysUntil(date: string | Date | null | undefined): number | null {
+  if (!date) return null;
+  try {
+    const target = typeof date === "string" ? parseISO(date) : date;
+    if (Number.isNaN(target.getTime())) return null;
+    const startTarget = new Date(
+      target.getFullYear(),
+      target.getMonth(),
+      target.getDate()
+    );
+    const now = new Date();
+    const startNow = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return Math.round((startTarget.getTime() - startNow.getTime()) / 86_400_000);
+  } catch {
+    return null;
+  }
+}
+
+export function parsePrice(
+  value: string | number | null | undefined
+): number | null {
+  if (value == null) return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+
+  const match = value.trim().toLowerCase().match(/\d[\d.,]*/);
+  if (!match) return null;
+
+  let token = match[0].replace(/[.,]+$/, "");
+  const hasDot = token.includes(".");
+  const hasComma = token.includes(",");
+
+  if (hasDot && hasComma) {
+    if (token.lastIndexOf(",") > token.lastIndexOf(".")) {
+      token = token.replace(/\./g, "").replace(",", ".");
+    } else {
+      token = token.replace(/,/g, "");
+    }
+  } else if (hasDot) {
+    const parts = token.split(".");
+    if (parts.length > 2 || parts[1]?.length === 3) {
+      token = token.replace(/\./g, "");
+    }
+  } else if (hasComma) {
+    const parts = token.split(",");
+    if (parts.length > 2 || parts[1]?.length === 3) {
+      token = token.replace(/,/g, "");
+    } else {
+      token = token.replace(",", ".");
+    }
+  }
+
+  const parsed = Number(token);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 export function supplierTypeLabel(type: SupplierType): string {
   return type;
 }

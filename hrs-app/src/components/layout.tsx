@@ -50,8 +50,8 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { cn, statusDotClass } from "@/lib/utils";
-import { useDemoStore, useFollowUps, useUsers, useAuth } from "@/lib/firebase-store";
+import { cn, statusDotClass, daysUntil } from "@/lib/utils";
+import { useDemoStore, useFollowUps, useUsers, useAuth, useBuyerRequests } from "@/lib/firebase-store";
 import { format } from "date-fns";
 
 const NAV_MAIN = [
@@ -81,6 +81,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { data } = useDemoStore();
   const { list: followUps } = useFollowUps();
   const { list: users } = useUsers();
+  const { list: buyerRequests } = useBuyerRequests();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -130,6 +131,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         }
       });
   }, [followUps]);
+
+  const urgentRequests = useMemo(() => {
+    return buyerRequests
+      .filter((r) => r.status !== "Closed" && !!r.neededBy)
+      .map((r) => ({ id: r.id, title: r.title, days: daysUntil(r.neededBy) }))
+      .filter((r): r is { id: string; title: string; days: number } => r.days !== null && r.days <= 7)
+      .sort((a, b) => a.days - b.days)
+      .slice(0, 5);
+  }, [buyerRequests]);
 
   const handleSearch = (href: string) => {
     setSearchOpen(false);
@@ -540,7 +550,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   }
                 >
                     <Bell className="w-5 h-5 text-[#333]" />
-                    {upcomingFollowUps.length > 0 && (
+                    {(upcomingFollowUps.length > 0 || urgentRequests.length > 0) && (
                       <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-brand-gold ring-2 ring-white" />
                     )}
                 </PopoverTrigger>
@@ -549,14 +559,44 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   align="end"
                 >
                   <div className="px-4 py-3 border-b border-black">
-                    <h3 className="font-semibold text-sm">
-                      Upcoming Follow-ups
-                    </h3>
+                    <h3 className="font-semibold text-sm">Notifications</h3>
                   </div>
-                  <div className="max-h-[280px] overflow-y-auto p-2 space-y-1">
-                    {upcomingFollowUps.length === 0 && (
+                  <div className="max-h-[380px] overflow-y-auto p-2 space-y-1">
+                    {upcomingFollowUps.length === 0 && urgentRequests.length === 0 && (
                       <div className="px-4 py-6 text-sm text-[#333] text-center">
-                        No upcoming follow-ups scheduled.
+                        Tidak ada notifikasi.
+                      </div>
+                    )}
+                    {urgentRequests.length > 0 && (
+                      <div className="px-2 pt-1 pb-1 text-[11px] font-bold uppercase tracking-wider text-[#333]">
+                        Deadline Kebutuhan
+                      </div>
+                    )}
+                    {urgentRequests.map((r) => {
+                      const overdue = r.days < 0;
+                      return (
+                        <div
+                          key={r.id}
+                          className="flex items-start gap-3 p-2 rounded-[4px] border border-transparent hover:border-black hover:bg-brand-muted/40 cursor-pointer transition-colors"
+                          onClick={() => {
+                            router.push(`/requests/${r.id}`);
+                            setMobileOpen(false);
+                          }}
+                        >
+                          <div className={cn("w-2 h-2 rounded-full mt-1.5 shrink-0", overdue ? "bg-red-500" : "bg-amber-500")} />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-medium truncate">{r.title}</div>
+                            <div className="text-xs text-[#333] mt-0.5">{overdue ? "Lewat deadline" : "Mendekati deadline"}</div>
+                          </div>
+                          <Badge variant="secondary" className={cn("shrink-0 text-[11px]", overdue ? "bg-red-50 text-red-800 border-red-200" : "bg-amber-50 text-amber-800 border-amber-200")}>
+                            {overdue ? `${Math.abs(r.days)} hari lewat` : `${r.days} hari lagi`}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                    {upcomingFollowUps.length > 0 && (
+                      <div className="px-2 pt-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-[#333]">
+                        Follow-up
                       </div>
                     )}
                     {upcomingFollowUps.map((f) => {
@@ -597,18 +637,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       );
                     })}
                   </div>
-                  {upcomingFollowUps.length > 0 && (
+                  {(upcomingFollowUps.length > 0 || urgentRequests.length > 0) && (
                     <div className="px-4 py-2 border-t border-black text-center">
                       <Button
                         variant="ghost"
                         size="sm"
                         className="text-black w-full"
                         onClick={() => {
-                          router.push("/buyers");
+                          router.push(urgentRequests.length > 0 ? "/requests" : "/buyers");
                           setMobileOpen(false);
                         }}
                       >
-                        View all buyers
+                        {urgentRequests.length > 0 ? "Lihat kebutuhan" : "View all buyers"}
                       </Button>
                     </div>
                   )}

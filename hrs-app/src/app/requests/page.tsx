@@ -14,10 +14,24 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useAuth, useBuyers, useBuyerRequests } from "@/lib/firebase-store";
 import { uploadMediaFiles, deleteMediaFiles, compressMediaFile, formatBytes, MAX_MEDIA_BYTES } from "@/lib/storage";
 import type { BuyerRequest, RequestStatus } from "@/lib/data";
+import { daysUntil } from "@/lib/utils";
 import { v4 as uuid } from "uuid";
 
 const STATUSES: RequestStatus[] = ["Open", "Sourcing", "Found", "Matched", "Closed"];
 const EMPTY = { buyerId: "internal", title: "", quantity: "", unit: "ton", specs: "", neededBy: "", notes: "", status: "Open" as RequestStatus };
+
+function deadlineInfo(r: BuyerRequest) {
+  if (!r.neededBy || r.status === "Closed") return null;
+  const days = daysUntil(r.neededBy);
+  if (days === null) return null;
+  if (days < 0)
+    return { days, label: `Lewat ${Math.abs(days)} hari`, cls: "bg-red-50 text-red-800 border-red-200" };
+  if (days === 0)
+    return { days, label: "Hari ini", cls: "bg-amber-50 text-amber-800 border-amber-200" };
+  if (days <= 7)
+    return { days, label: `${days} hari lagi`, cls: "bg-amber-50 text-amber-800 border-amber-200" };
+  return null;
+}
 
 export default function RequestsPage() {
   const { user } = useAuth();
@@ -25,6 +39,7 @@ export default function RequestsPage() {
   const { list: requests, add, update, remove, loading } = useBuyerRequests();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [deadlineFilter, setDeadlineFilter] = useState("all");
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState<BuyerRequest | null>(null);
@@ -36,9 +51,16 @@ export default function RequestsPage() {
   const filtered = useMemo(() => requests.filter((r) => {
     const q = search.toLowerCase();
     const buyer = buyers.find((b) => b.id === r.buyerId)?.companyName || r.buyerName || "Internal";
+    const info = deadlineInfo(r);
+    const deadlineMatch = deadlineFilter === "all"
+      || (deadlineFilter === "overdue" && !!info && info.days < 0)
+      || (deadlineFilter === "soon" && !!info && info.days >= 0);
     return (!q || r.title.toLowerCase().includes(q) || buyer.toLowerCase().includes(q) || r.specs.toLowerCase().includes(q))
-      && (statusFilter === "all" || r.status === statusFilter);
-  }).sort((a,b)=> (b.updatedAt||b.createdAt||"").localeCompare(a.updatedAt||a.createdAt||"")), [requests, buyers, search, statusFilter]);
+      && (statusFilter === "all" || r.status === statusFilter)
+      && deadlineMatch;
+  }).sort((a,b)=> (b.updatedAt||b.createdAt||"").localeCompare(a.updatedAt||a.createdAt||"")), [requests, buyers, search, statusFilter, deadlineFilter]);
+
+  const overdueCount = useMemo(() => requests.filter((r) => (deadlineInfo(r)?.days ?? 0) < 0).length, [requests]);
 
   const openCreate = () => { setEditing(null); setForm(EMPTY); setFiles([]); setError(""); setCompressing({}); setOpen(true); };
   const openEdit = (r: BuyerRequest) => {
@@ -108,12 +130,13 @@ export default function RequestsPage() {
   return (
     <div className="p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <div><h1 className="text-xl font-semibold text-black">Kebutuhan Buyer</h1><p className="text-sm text-[#333]">Catat permintaan buyer/internal, cari supply, lalu cocokkan temuan.</p></div>
+        <div><h1 className="text-xl font-semibold text-black">Kebutuhan Buyer</h1><p className="text-sm text-[#333]">Catat permintaan buyer/internal, cari supply, lalu cocokkan temuan.</p>{overdueCount > 0 && <p className="text-xs font-medium text-red-600 mt-1">{overdueCount} kebutuhan sudah lewat deadline.</p>}</div>
         <Button onClick={openCreate}><Plus className="w-4 h-4 mr-2" />Tambah Kebutuhan</Button>
       </div>
       <div className="flex flex-col md:flex-row gap-2">
         <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#333]" /><Input className="pl-9" placeholder="Cari komoditas, buyer, spek..." value={search} onChange={(e)=>setSearch(e.target.value)} /></div>
         <Select value={statusFilter} onValueChange={(v)=>setStatusFilter(v ?? "all")}><SelectTrigger className="w-full md:w-[180px]"><SelectValue placeholder="Status" /></SelectTrigger><SelectContent><SelectItem value="all">Semua status</SelectItem>{STATUSES.map(s=><SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select>
+        <Select value={deadlineFilter} onValueChange={(v)=>setDeadlineFilter(v ?? "all")}><SelectTrigger className="w-full md:w-[180px]"><SelectValue placeholder="Deadline" /></SelectTrigger><SelectContent><SelectItem value="all">Semua deadline</SelectItem><SelectItem value="overdue">Lewat deadline</SelectItem><SelectItem value="soon">≤ 7 hari</SelectItem></SelectContent></Select>
       </div>
       <div className="border border-black rounded-[4px] bg-[#fffdf5] overflow-hidden">
         <Table>
@@ -123,12 +146,13 @@ export default function RequestsPage() {
             : filtered.length === 0 ? <TableRow><TableCell colSpan={6}><div className="py-12 text-center"><ClipboardList className="w-10 h-10 mx-auto text-[#333] mb-2" /><p className="text-sm text-[#333]">Belum ada kebutuhan.</p></div></TableCell></TableRow>
             : filtered.map((r) => {
               const buyer = buyers.find((b)=>b.id===r.buyerId)?.companyName || r.buyerName || "Internal";
+              const info = deadlineInfo(r);
               return <TableRow key={r.id}>
                 <TableCell><div className="font-medium text-black">{r.title}</div><div className="text-xs text-[#333] line-clamp-1">{r.specs || "-"}</div></TableCell>
                 <TableCell>{buyer}</TableCell>
                 <TableCell>{r.quantity ?? "-"} {r.unit}</TableCell>
                 <TableCell><Badge variant="outline">{r.status}</Badge></TableCell>
-                <TableCell>{r.neededBy ? new Date(r.neededBy).toLocaleDateString("id-ID") : "-"}</TableCell>
+                <TableCell><div className="space-y-1"><div>{r.neededBy ? new Date(r.neededBy).toLocaleDateString("id-ID") : "-"}</div>{info && <Badge variant="outline" className={`text-[10px] ${info.cls}`}>{info.label}</Badge>}</div></TableCell>
                 <TableCell><div className="flex gap-1"><Link href={`/requests/${r.id}`} className="inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-[#ffe66d]"><Eye className="w-4 h-4" /></Link><Button size="icon" variant="ghost" onClick={()=>openEdit(r)}><Pencil className="w-4 h-4" /></Button><Button size="icon" variant="ghost" onClick={()=>onDelete(r)}><Trash2 className="w-4 h-4 text-red-500" /></Button></div></TableCell>
               </TableRow>;
             })}
